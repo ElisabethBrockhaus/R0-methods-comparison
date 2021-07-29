@@ -7,7 +7,8 @@
 # lower_Npv: lower end for sampling of population size
 # upper_Npv: upper end
 # n_aggr: how many days to aggregate into one observation? defaults to 7 = one week
-simulate_data <- function(N, gamma, sigma, lower_Npv = 3, upper_Npv = 6, n_aggr = 7){
+simulate_data <- function(N, gamma, sigma, lower_Npv = 3, upper_Npv = 6, n_aggr = 7,
+                          min_Iv = 3, max_Iv = 8){
   
   #=== Define the SEIR model
   
@@ -48,11 +49,12 @@ simulate_data <- function(N, gamma, sigma, lower_Npv = 3, upper_Npv = 6, n_aggr 
   #=== Generate N simulated epidemic curves with randomly selected parameter values
   
   # randomly select values of R0, population size (Np), and inital number infected (I)
-  R0v <- round(rtruncnorm(N, a=1.2, b=8, mean=2, sd=2),2) 
+  # JB changed to min R = 2, mean = 3
+  R0v <- round(rtruncnorm(N, a=2, b=8, mean=3, sd=2),2) 
   # JB: set up population size by a factor of 10^3
   Npv <- if(lower_Npv == upper_Npv) rep(10^lower_Npv, N) else 10^(round(runif(N, min=lower_Npv, max=upper_Npv),0))
   #Npv <- 10^(round(runif(N, min=3, max=6),0))  
-  Iv <- round(runif(N, min=1, max=5),0)
+  Iv <- round(runif(N, min=min_Iv, max=max_Iv),0)
   
   # daily time step for 2 years
   timestep <- seq(0, 2*365) 
@@ -108,5 +110,78 @@ simulate_data <- function(N, gamma, sigma, lower_Npv = 3, upper_Npv = 6, n_aggr 
 }
   
 
-
+# same for a stochastic model:
+simulate_data_stoch <- function(N, gamma, sigma, lower_Npv = 3, upper_Npv = 6, n_aggr = 7,
+                                min_Iv = 3, max_Iv = 8){
+  
+  #=== Define the SEIR model
+  
+  stochastic_sim <- function(gamma, sigma, R0, Npv, Iv, lgt = 2*365){
+    S <- E <- I <- R <- inc <- rep(NA, lgt)
+    S[1] <- Npv - Iv
+    E[1] <- 0
+    I[1] <- Iv
+    R[1] <- 0
+    inc[1] <- 0
+    
+    for(t in 2:lgt){
+      S_to_E <- rbinom(1, S[t - 1], R0*gamma*I[t - 1]/Npv)
+      E_to_I <- rbinom(1, E[t - 1], sigma)
+      I_to_R <- rbinom(1, I[t - 1], gamma)
+      
+      S[t] <- S[t - 1] - S_to_E
+      E[t] <- E[t - 1] + S_to_E - E_to_I
+      I[t] <- I[t - 1] + E_to_I - I_to_R
+      R[t] <- R[t - 1] + I_to_R
+      
+      inc[t] <- E_to_I
+    }
+    
+    # reporting:
+    reported_inc <- rbinom(lgt, inc, 0.2)
+    
+    return(reported_inc)
+  }
+  
+  
+  
+  #=== Generate N simulated epidemic curves with randomly selected parameter values
+  
+  # randomly select values of R0, population size (Np), and inital number infected (I)
+  R0v <- round(rtruncnorm(N, a=2, b=8, mean=3, sd=2),2) 
+  # JB: set up population size by a factor of 10^3
+  Npv <- if(lower_Npv == upper_Npv) rep(10^lower_Npv, N) else 10^(round(runif(N, min=lower_Npv, max=upper_Npv),0))
+  #Npv <- 10^(round(runif(N, min=3, max=6),0))  
+  Iv <- round(runif(N, min=min_Iv, max=max_Iv),0)
+  
+  
+  # dataframes to store simulations
+  sim_data <- data.frame(matrix(ncol=N, nrow=105))
+  colnames(sim_data) <- paste("sim", seq(1:N), sep="")
+  
+  # store parameter values
+  pars_data <- data.frame(sim=1, R0=R0v[1], Np=Npv[1], I0=Iv[1])
+  
+  #=== Simulate SEIR model & aggregate to weekly incidence data
+  for(i in 1:N){
+    
+    # run the SEIR model
+    incidence <- stochastic_sim(gamma = gamma, sigma = sigma, R0 = R0v[i], Npv = Npv[i], Iv = Iv[i], lgt = 150)
+    
+    # aggregate to weekly data
+    Inc_weekly <- round(unname(tapply(incidence, (seq_along(incidence)-1) %/% n_aggr, sum))) 
+    
+    # cut the time series to begin at time of 1st case
+    first_index_cases <- min(which(Inc_weekly>0))
+    Inc_weekly <- Inc_weekly[first_index_cases:length(Inc_weekly)]
+    Inc_weekly <- Inc_weekly[1:105]
+    
+    # store weekly incidence data and true parameter values
+    sim_data[ ,i] <- Inc_weekly
+    pars_data[i, ] <- c(i, R0v[i], Npv[i], Iv[i])
+  }
+  
+  # return a list of simulated data, with varying noise levels, & parameter values used
+  return(list(sims=sim_data, pars=pars_data))
+}
 

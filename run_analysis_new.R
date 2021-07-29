@@ -30,7 +30,8 @@ scatterplot_results <- function(metrics, ...){
 }
 
 # fix population size parameters:
-
+lower_Npv <- 6
+upper_Npv <- 6
 
 #===== 1. Original version =====#
 
@@ -209,8 +210,68 @@ bias_plot(metrics_15_daily[[2]]$metrics_indiv)
 scatterplot_results(metrics_15_daily[[1]], main = "No noise, sd of gen time = 15.25, daily data")
 scatterplot_results(metrics_15_daily[[2]], main = "Poisson noise, sd of gen time = 15.25, daily data")
 
-png("scatterplots.png", width = 1200, height = 900)
-par(mfcol = c(2, 3), cex = 1.3)
+#===== 4. With sd of generation time set to 15.25, daily data and a discrete-valued simulation process =====#
+
+# debug(simulate_data_stoch)
+set.seed(125)
+simulations_daily_stoch <- simulate_data_stoch(N=250, gamma=1/6, sigma=1/14, lower_Npv = lower_Npv, 
+                                               upper_Npv = upper_Npv, n_aggr = 1, min_Iv = 5, max_Iv = 5)
+
+plot(simulations_daily_stoch$sims$sim12)
+
+# list to store results from simulations
+Sim_results_15_daily_stoch <- list()
+
+# fit each method at sequential time points of epidemic growth phase
+# note: running this locally in a loop will take a long time.
+# where possible, we recommend using parallel computing for this.
+
+# for each of the 3 noise levels
+for(i in 1){ # only one slot exists
+  
+  # list for storage
+  results_i <- list()
+  
+  # for each of the 250 simulations
+  for(j in 1:ncol(simulations$sims)){ 
+    
+    # data for fitting - simulation j with noise level i
+    sim_ij <- data.frame(week=1:nrow(simulations_daily_stoch[[i]]), cases=simulations_daily_stoch[[i]][ ,j], 
+                         country=paste("sim", j, sep='_'))
+    
+    # fit & store results
+    # run only for EpiEstim for now
+    # undebug(fit_R0_seq)
+    results_i[[j]] <- fit_R0_seq(data=sim_ij, mean_GT=20, sd_GT=15.25, GTd=GTd, GT_week=3*7, methods = "EpiEstim", min_peak_time = 7*15)
+    print(j)
+  }
+  
+  # store results from each noise level
+  Sim_results_15_daily_stoch[[i]] <- results_i
+}
+
+
+# calculate performance metrics
+metrics_15_daily_stoch <- list()
+for(i in seq_along(Sim_results_15_daily_stoch)){
+  metrics_15_daily_stoch[[i]] <- performance_metrics(trueR0=simulations_daily_stoch$pars,
+                                                     estimates=Sim_results_15_daily_stoch[[i]], max_weeks=7*15, min_peak=7*15)
+}
+
+# choose metrics to plot
+get_metrics()
+want <- c('Bias','Coverage','Uncertainty','RMSE')
+
+# metrics summary plot & bias plot
+bias_plot(metrics_15_daily_stoch[[1]]$metrics_indiv)
+
+# plot all results:
+scatterplot_results(metrics_15_daily_stoch[[1]], main = "Sd of gen time = 15.25, daily data, stochastic simulation")
+
+
+
+png("scatterplots.png", width = 1500, height = 900)
+par(mfcol = c(2, 4), cex = 1.3)
 
 scatterplot_results(metrics[[1]], main = "No noise, original setting")
 scatterplot_results(metrics[[2]], main = "Poisson noise, original setting")
@@ -220,7 +281,7 @@ scatterplot_results(metrics_15[[2]], main = "Poisson noise, sd of gen time = 15.
 
 scatterplot_results(metrics_15_daily[[1]], main = "No noise, sd of gen time = 15.25,\n daily data")
 scatterplot_results(metrics_15_daily[[2]], main = "Poisson noise, sd of gen time = 15.25,\n daily data")
-dev.off()
 
-# Could potentially be added:
-#===== 4. With sd of generation time set to 15.25, daily data and a discrete-valued simulation process =====#
+plot(NULL, axes = FALSE, xlab = "", ylab = "", xlim = 0:1, ylim = 0:1)
+scatterplot_results(metrics_15_daily_stoch[[1]], main = "Sd of gen time = 15.25, daily\n data, stochastic simulation")
+dev.off()
