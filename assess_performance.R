@@ -31,9 +31,12 @@ performance_metrics <- function(trueR0, estimates, max_weeks, min_peak){
   missing <- as.data.frame(cbind(sim=estimates$sim[which(is.na(estimates$R0))],
                                  Nweeks=estimates$Nweeks[which(is.na(estimates$R0))]))
   missing <- unique(missing[c("sim", "Nweeks")])
-  for(m in 1:nrow(missing)){
-    estimates <- estimates[!(estimates$sim==missing$sim[m] & estimates$Nweeks==missing$Nweeks[m]), ]
+  if(nrow(missing) > 0){ # JB: needed here as sometimes missing is empty
+    for(m in 1:nrow(missing)){
+      estimates <- estimates[!(estimates$sim==missing$sim[m] & estimates$Nweeks==missing$Nweeks[m]), ]
+    }
   }
+
   
   # EB: convert columns to numeric type
   estimates <- transform(estimates, R0 = as.numeric(R0),

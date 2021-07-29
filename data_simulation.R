@@ -3,7 +3,11 @@
 # - Poisson random errors
 # - Negative Binomial random errors
 
-simulate_data <- function(N, gamma, sigma){
+# new arguments:
+# lower_Npv: lower end for sampling of population size
+# upper_Npv: upper end
+# n_aggr: how many days to aggregate into one observation? defaults to 7 = one week
+simulate_data <- function(N, gamma, sigma, lower_Npv = 3, upper_Npv = 6, n_aggr = 7){
   
   #=== Define the SEIR model
   
@@ -46,7 +50,7 @@ simulate_data <- function(N, gamma, sigma){
   # randomly select values of R0, population size (Np), and inital number infected (I)
   R0v <- round(rtruncnorm(N, a=1.2, b=8, mean=2, sd=2),2) 
   # JB: set up population size by a factor of 10^3
-  Npv <- 10^(round(runif(N, min=6, max=9),0))
+  Npv <- if(lower_Npv == upper_Npv) rep(10^lower_Npv, N) else 10^(round(runif(N, min=lower_Npv, max=upper_Npv),0))
   #Npv <- 10^(round(runif(N, min=3, max=6),0))  
   Iv <- round(runif(N, min=1, max=5),0)
   
@@ -81,7 +85,7 @@ simulate_data <- function(N, gamma, sigma){
     incidence <- round(pars[which(names(pars)=="sigma")] * out[,which(colnames(out)=="E")]) 
     
     # aggregate to weekly data
-    Inc_weekly <- round(unname(tapply(incidence, (seq_along(incidence)-1) %/% 7, sum))* Reporting_fraction) 
+    Inc_weekly <- round(unname(tapply(incidence, (seq_along(incidence)-1) %/% n_aggr, sum))* Reporting_fraction) 
     
     # cut the time series to begin at time of 1st case
     indx <- which(Inc_weekly>0)
