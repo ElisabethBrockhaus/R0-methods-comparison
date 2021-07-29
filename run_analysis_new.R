@@ -209,7 +209,8 @@ bias_plot(metrics_15_daily[[2]]$metrics_indiv)
 scatterplot_results(metrics_15_daily[[1]], main = "No noise, sd of gen time = 15.25, daily data")
 scatterplot_results(metrics_15_daily[[2]], main = "Poisson noise, sd of gen time = 15.25, daily data")
 
-par(mfcol = c(2, 3))
+png("scatterplots.png", width = 1200, height = 900)
+par(mfcol = c(2, 3), cex = 1.3)
 
 scatterplot_results(metrics[[1]], main = "No noise, original setting")
 scatterplot_results(metrics[[2]], main = "Poisson noise, original setting")
@@ -217,8 +218,9 @@ scatterplot_results(metrics[[2]], main = "Poisson noise, original setting")
 scatterplot_results(metrics_15[[1]], main = "No noise, sd of gen time = 15.25")
 scatterplot_results(metrics_15[[2]], main = "Poisson noise, sd of gen time = 15.25")
 
-scatterplot_results(metrics_15_daily[[1]], main = "No noise, sd of gen time = 15.25, daily data")
-scatterplot_results(metrics_15_daily[[2]], main = "Poisson noise, sd of gen time = 15.25, daily data")
+scatterplot_results(metrics_15_daily[[1]], main = "No noise, sd of gen time = 15.25,\n daily data")
+scatterplot_results(metrics_15_daily[[2]], main = "Poisson noise, sd of gen time = 15.25,\n daily data")
+dev.off()
 
 # Could potentially be added:
 #===== 4. With sd of generation time set to 15.25, daily data and a discrete-valued simulation process =====#
