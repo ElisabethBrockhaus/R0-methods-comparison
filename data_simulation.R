@@ -49,8 +49,8 @@ simulate_data <- function(N, gamma, sigma, lower_Npv = 3, upper_Npv = 6, n_aggr 
   #=== Generate N simulated epidemic curves with randomly selected parameter values
   
   # randomly select values of R0, population size (Np), and inital number infected (I)
-  # JB changed to min R = 2, mean = 3
-  R0v <- round(rtruncnorm(N, a=2, b=8, mean=3, sd=2),2) 
+  # JB changed to min R = 2, mean = 2
+  R0v <- round(rtruncnorm(N, a=2, b=8, mean=2, sd=2),2) 
   # JB: set up population size by a factor of 10^3
   Npv <- if(lower_Npv == upper_Npv) rep(10^lower_Npv, N) else 10^(round(runif(N, min=lower_Npv, max=upper_Npv),0))
   #Npv <- 10^(round(runif(N, min=3, max=6),0))  
