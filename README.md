@@ -1,3 +1,5 @@
+*This is a copy of the repository https://github.com/meganodris/R0-methods-comparison by Megan O'Driscoll et al. We used it to conduct some variations of the simulation studies presented there. The vast majority of code has been written by Megan O'Driscoll.*
+
 ## R0-methods-comparison
 
 Code and data to reproduce the analysis in "A comparative analysis of statistical methods to estimate the reproduction number in emerging epidemics with implications for the current COVID-19 pandemic", https://doi.org/10.1093/cid/ciaa1599.
