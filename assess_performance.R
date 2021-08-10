@@ -31,9 +31,12 @@ performance_metrics <- function(trueR0, estimates, max_weeks, min_peak){
   missing <- as.data.frame(cbind(sim=estimates$sim[which(is.na(estimates$R0))],
                                  Nweeks=estimates$Nweeks[which(is.na(estimates$R0))]))
   missing <- unique(missing[c("sim", "Nweeks")])
-  for(m in 1:nrow(missing)){
-    estimates <- estimates[!(estimates$sim==missing$sim[m] & estimates$Nweeks==missing$Nweeks[m]), ]
+  if(nrow(missing) > 0){ # JB: needed here as sometimes missing is empty
+    for(m in 1:nrow(missing)){
+      estimates <- estimates[!(estimates$sim==missing$sim[m] & estimates$Nweeks==missing$Nweeks[m]), ]
+    }
   }
+
   
   # EB: convert columns to numeric type
   estimates <- transform(estimates, R0 = as.numeric(R0),
@@ -130,7 +133,7 @@ summary_plot <- function(metrics_summ, include){
 # bias distribution plot: estimated R0 - actual R0
 bias_plot <- function(metrics_indiv){
   
-  metrics_indiv$method <- factor(metrics_indiv$method, levels=c('EG_Lin', 'EG_P', 'EG_MLE', 'EpiEstim', 'WP', 'WT', 'BR'))
+  metrics_indiv$method <- factor(metrics_indiv$method, levels=c("EG_Lin", 'EpiEstim'))
   plotB <- ggplot(metrics_indiv)+ ylab('')+ scale_x_continuous(expand=c(0, 0))+ theme_minimal()+
     geom_density_ridges(aes(x=bias, y=factor(method), fill=method, col=method), scale=0.95, alpha=0.25, bandwidth=0.28,
                         quantile_lines=2, quantiles=2)+
@@ -141,4 +144,16 @@ bias_plot <- function(metrics_indiv){
     scale_y_discrete(expand=expand_scale(mult=c(0.01, 0.01)), limits=rev(levels(metrics_indiv$method)))
   
   return(plotB)  
+}
+
+
+# helper function to plot:
+scatterplot_results <- function(metrics, tag_legend = "weeks", ...){
+  cols <- (2:5)[as.numeric(as.factor(metrics$metrics_indiv$Nweeks))]
+  plot(metrics$metrics_indiv$R0_true, metrics$metrics_indiv$R0,
+       col = cols, ylim = c(0, 8), xlim = c(0, 8),
+       xlab = expression(true~R[0]), ylab = expression(estimated~R[0]), ...)
+  legend("topleft", legend = paste(unique(metrics$metrics_indiv$Nweeks), tag_legend),
+         col = cols, pch = 1)
+  abline(0:1, lty = "dotted")
 }
